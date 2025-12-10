@@ -1,0 +1,212 @@
+# Errors Encountered During Development
+
+This document lists all the errors encountered while building the gRPC Bitcoin Payment Service and their solutions.
+
+## Error 1: Syntax Error in Proto File
+
+**Error Message:**
+```
+syntax error in proto/payments.proto
+```
+
+**Root Cause:**
+- Typo: `sytax = "proto3"` instead of `syntax = "proto3"`
+- Missing semicolon after RPC definition
+
+**Original Code:**
+```protobuf
+sytax = "proto3"; 
+package payments ;
+
+service Bitcoin {
+    rpc SendPayment (BTCPaymentRequest) returns (BTCPaymentResponse)
+}
+```
+
+**Fix:**
+```protobuf
+syntax = "proto3"; 
+package payments;
+
+service Bitcoin {
+    rpc SendPayment (BTCPaymentRequest) returns (BTCPaymentResponse);
+}
+```
+
+---
+
+## Error 2: Invalid Rust Edition
+
+**Error Message:**
+```
+error: failed to parse manifest at `Cargo.toml`
+edition `2024` is not supported
+```
+
+**Root Cause:**
+Rust edition 2024 doesn't exist yet. Valid editions are: 2015, 2018, 2021
+
+**Original Code (Cargo.toml):**
+```toml
+edition = "2024"
+```
+
+**Fix:**
+```toml
+edition = "2021"
+```
+
+---
+
+## Error 3: Missing Return Type in main()
+
+**Error Message:**
+```
+error[E0308]: mismatched types
+expected `()`, found `Result<(), Box<dyn std::error::Error>>`
+```
+
+**Root Cause:**
+The `main()` function was returning `Ok(())` but had no return type declared, and was using the `?` operator which requires a Result return type.
+
+**Original Code:**
+```rust
+#[tokio::main]
+async fn main() {
+    let addr = "[::1]:50051".parse()?;
+    // ...
+    Ok(())
+}
+```
+
+**Fix:**
+```rust
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let addr = "[::1]:50051".parse()?;
+    // ...
+    Ok(())
+}
+```
+
+---
+
+## Error 4: protoc Not Found
+
+**Error Message:**
+```
+Error: Custom { 
+    kind: NotFound, 
+    error: "Could not find `protoc`. If `protoc` is installed, try setting the `PROTOC` 
+    environment variable to the path of the `protoc` binary. To install it on macOS, 
+    run `brew install protobuf`." 
+}
+```
+
+**Root Cause:**
+Protocol Buffers compiler (`protoc`) was not installed on the system.
+
+**Fix:**
+```bash
+brew install protobuf
+```
+
+---
+
+## Error 5: Missing tonic-prost Dependency
+
+**Error Message:**
+```
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `tonic_prost`
+ --> target/debug/build/grpc-impl-a5b199c76891b06e/out/payments.rs:124:25
+  |
+  | ... = tonic_prost::Pro...
+  |       ^^^^^^^^^^^ use of unresolved module or unlinked crate `tonic_prost`
+  |
+  = help: if you wanted to use a crate named `tonic_prost`, use `cargo add tonic_prost` 
+          to add it to your `Cargo.toml`
+```
+
+**Root Cause:**
+The generated code from `tonic-prost-build` requires the `tonic-prost` runtime dependency, which was missing from `Cargo.toml`.
+
+**Fix:**
+```bash
+cargo add tonic-prost
+```
+
+Or manually add to Cargo.toml:
+```toml
+[dependencies]
+tonic-prost = "0.14.2"
+```
+
+---
+
+## Error 6: Unused Import Warning
+
+**Error Message:**
+```
+warning: unused import: `BtcPaymentResponse`
+ --> src/client.rs:2:35
+  |
+2 | ...t, BtcPaymentResponse};
+  |       ^^^^^^^^^^^^^^^^^^
+```
+
+**Root Cause:**
+The client code imported `BtcPaymentResponse` but never used it in the implementation.
+
+**Original Code:**
+```rust
+use payments::{BtcPaymentRequest, BtcPaymentResponse};
+```
+
+**Fix:**
+```rust
+use payments::BtcPaymentRequest;
+```
+
+---
+
+## Summary of All Fixes Applied
+
+1. ✅ Fixed typo in proto file: `sytax` → `syntax`
+2. ✅ Added missing semicolon after RPC definition
+3. ✅ Changed Rust edition from `2024` → `2021`
+4. ✅ Added return type to `main()` function
+5. ✅ Installed `protoc` via Homebrew
+6. ✅ Added `tonic-prost` dependency
+7. ✅ Removed unused import `BtcPaymentResponse`
+
+---
+
+## Key Learnings
+
+- **Protocol Buffers**: Always ensure correct syntax and proper semicolons
+- **Tonic 0.14+**: Requires both `tonic-prost-build` (build-time) and `tonic-prost` (runtime)
+- **System Dependencies**: gRPC projects need `protoc` installed on the system
+- **Async Functions**: When using `?` operator, ensure proper Result return types
+- **Rust Editions**: Use valid edition numbers (2015, 2018, 2021)
+
+---
+
+## Useful Commands for Debugging
+
+```bash
+# Check if protoc is installed
+protoc --version
+
+# Clean and rebuild from scratch
+cargo clean && cargo build
+
+# Check for unused dependencies
+cargo tree
+
+# Fix warnings automatically
+cargo fix --bin "payments-client"
+cargo fix --bin "payments-server"
+
+# Run with verbose output
+cargo build --verbose
+```
