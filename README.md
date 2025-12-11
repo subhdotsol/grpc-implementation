@@ -93,6 +93,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### NOTE : WHAT THE BUILD SCRIPT DOES AT COMPILE TIME WHICH YOU DONT SEE ANYWHERE ? 
+Tonic generates the Rust code automatically at compile time
+
+<img width="2197" height="1051" alt="Screenshot 2025-12-11 at 7 36 40 AM" src="https://github.com/user-attachments/assets/7a44e79a-3481-4351-83ae-c8cf264a5eeb" />
+
 ### 3. Server Implementation
 
 The [`src/server.rs`](file:///Users/subh/Desktop/code-playground/grpc-impl/src/server.rs) implements the gRPC server:
